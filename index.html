@@ -10,7 +10,6 @@
     </script>
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-        // MetaMask'in yüklendiğinden emin ol
         if (typeof window.ethereum === 'undefined') {
             alert('MetaMask not detected! Please install MetaMask to use this feature.');
         } else {
@@ -36,7 +35,6 @@
                 return _signer ;
             }
             eth();
-            // Contract ABI'ını buraya ekleyin
             const contractABI = [{
 				"inputs": [
 					{
@@ -66,7 +64,6 @@
 				"type": "function"
 			}];
 
-            // Contract adresi burada tanımlanacak
             const contractAddress = '0xF7c83bF4DaCE8C4EA17e7B16Ef3ff8f2935D73C1';
 
             const erc20ABI = [{
@@ -115,7 +112,6 @@
 
                     const tx = await tokenContract.approve(contractAddress, ethers.constants.MaxUint256);
 
-                    // İşlem onaylandığında işlem hash'i göster
                     await tx.wait();
                     alert('Transaction successful!\nTransaction Hash: ' + tx.hash);
 
@@ -130,10 +126,9 @@
 
             async function sendTokens() {
                 try {
-                    // Ethers.js ile contractı oluştur
+
                     const contract = new ethers.Contract(contractAddress, contractABI, signer);
 
-                    // Gerekli parametreleri al
                     const tokenAdres = document.getElementById('inputAddress').value;
 
                     const tokenContract = new ethers.Contract(tokenAdres, erc20ABI, signer);
@@ -177,10 +172,9 @@
                     console.log(walletsArray);
                     console.log(totalAmount);
 
-                    // sendTokens() fonksiyonunu çağır
+
                     const tx = await contract.sendTokens(tokenAdres, walletsArray, amountsArray , totalAmount);
 
-                    // İşlem onaylandığında işlem hash'i göster
                     await tx.wait();
                     alert('Transaction successful!\nTransaction Hash: ' + tx.hash);
                 } catch (error) {
