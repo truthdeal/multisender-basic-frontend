@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Multisender token send</title>
+    <!-- ethers.js library -->
+    <script src="https://cdn.ethers.io/scripts/ethers-v4.min.js"
+        charset="utf-8"
+        type="text/javascript">
+    </script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+        // MetaMask'in yüklendiğinden emin ol
+        if (typeof window.ethereum === 'undefined') {
+            alert('MetaMask not detected! Please install MetaMask to use this feature.');
+        } else {
+
+            let signer ;
+            async function eth() {
+                // const accounts = await ethereum.request({ method: 'eth_requestAccounts' });
+                // if (accounts.length === 0) {
+                //   // MetaMask is locked or the user has not connected any accounts
+                //   console.log('Please connect to MetaMask.');
+                // } else if (accounts[0] !== activeAccount) {
+                //   activeAccount = accounts[0];
+                // }
+                // const provider = new ethers.providers.Web3Provider(window.ethereum);
+                // const _signer = provider.getSigner();
+
+                const provider = new ethers.providers.Web3Provider(window.ethereum);
+                // Prompt user for account connections
+                await provider.send("eth_requestAccounts", []);
+                const _signer = provider.getSigner();
+                console.log("Account:", await _signer.getAddress());
+                signer = _signer;
+                return _signer ;
+            }
+            eth();
+            // Contract ABI'ını buraya ekleyin
+            const contractABI = [{
+				"inputs": [
+					{
+						"internalType": "contract IERC20",
+						"name": "_tokenAddress",
+						"type": "address"
+					},
+					{
+						"internalType": "address[]",
+						"name": "_receiver",
+						"type": "address[]"
+					},
+					{
+						"internalType": "uint256[]",
+						"name": "_values",
+						"type": "uint256[]"
+					},
+					{
+						"internalType": "uint256",
+						"name": "totalValue",
+						"type": "uint256"
+					}
+				],
+				"name": "sendTokens",
+				"outputs": [],
+				"stateMutability": "nonpayable",
+				"type": "function"
+			}];
+
+            // Contract adresi burada tanımlanacak
+            const contractAddress = '0xF7c83bF4DaCE8C4EA17e7B16Ef3ff8f2935D73C1';
+
+            const erc20ABI = [{
+			        "inputs": [
+			        	{
+			        		"internalType": "address",
+			        		"name": "spender",
+			        		"type": "address"
+			        	},
+			        	{
+			        		"internalType": "uint256",
+			        		"name": "amount",
+			        		"type": "uint256"
+			        	}
+			        ],
+			        "name": "approve",
+			        "outputs": [
+			        	{
+			        		"internalType": "bool",
+			        		"name": "",
+			        		"type": "bool"
+			        	}
+			        ],
+			        "stateMutability": "nonpayable",
+			        "type": "function"
+		            }, {
+		            	"inputs": [],
+		            	"name": "decimals",
+		            	"outputs": [
+		            		{
+		            			"internalType": "uint8",
+		            			"name": "",
+		            			"type": "uint8"
+		            		}
+		            	],
+		            	"stateMutability": "view",
+		            	"type": "function"
+		            }];
+
+            async function approve() {
+                try {
+
+                    const tokenAdres = document.getElementById('inputAddress').value;
+
+                    const tokenContract = new ethers.Contract(tokenAdres, erc20ABI, signer);
+
+                    const tx = await tokenContract.approve(contractAddress, ethers.constants.MaxUint256);
+
+                    // İşlem onaylandığında işlem hash'i göster
+                    await tx.wait();
+                    alert('Transaction successful!\nTransaction Hash: ' + tx.hash);
+
+                 }
+                catch (error) {
+                    console.error('Transaction failed:', error);
+                }
+            } ;
+
+            const approveButton = document.getElementById('approveButton');
+            approveButton.addEventListener('click', approve);
+
+            async function sendTokens() {
+                try {
+                    // Ethers.js ile contractı oluştur
+                    const contract = new ethers.Contract(contractAddress, contractABI, signer);
+
+                    // Gerekli parametreleri al
+                    const tokenAdres = document.getElementById('inputAddress').value;
+
+                    const tokenContract = new ethers.Contract(tokenAdres, erc20ABI, signer);
+
+                    const decimal = await tokenContract.decimals() ;
+                    const amount = document.getElementById('inputAmount').value;
+                    let amountsArray = [] ;
+
+                    // Split the input values by commas and remove any existing spaces
+                    const amountsArrayRaw = amount.split(',').map(amount => amount.trim());
+
+                    // Convert the string values to numbers and push them into the array
+                    amountsArray.length = 0; // Clear the existing array
+                    let _totalAmount = 0;
+                    for (const amount of amountsArrayRaw) {
+                        _totalAmount += parseFloat(amount) ;
+                        const parsedAmount = ethers.utils.parseUnits(amount , decimal);
+                        if (!isNaN(parsedAmount)) {
+                            amountsArray.push(parsedAmount);
+                        }
+                    }
+
+
+                    const wallets = document.getElementById('inputSender').value;
+                    let walletsArray = [] ;
+                    const walletsArrayRaw = wallets.split(',').map(wallets => wallets.trim());
+                    walletsArray.length = 0; // Clear the existing array
+
+                    for (const wallet of walletsArrayRaw) {
+                            walletsArray.push(wallet);
+                    }
+
+
+                    // let totalAmount = document.getElementById('inputRecipient').value;
+                    totalAmount = ethers.utils.parseUnits(String(_totalAmount)  , decimal) ;
+
+                    
+                    
+                    console.log(tokenAdres);
+                    console.log(amountsArray);
+                    console.log(walletsArray);
+                    console.log(totalAmount);
+
+                    // sendTokens() fonksiyonunu çağır
+                    const tx = await contract.sendTokens(tokenAdres, walletsArray, amountsArray , totalAmount);
+
+                    // İşlem onaylandığında işlem hash'i göster
+                    await tx.wait();
+                    alert('Transaction successful!\nTransaction Hash: ' + tx.hash);
+                } catch (error) {
+                    console.error('Transaction failed:', error);
+                }
+            }
+
+            const button = document.getElementById('sendButton');
+            button.addEventListener('click', sendTokens);
+        }
+    });
+    </script>
+</head>
+<body>
+
+    <h1>Multisender</h1>
+    <label for="inputAddress">Token Contract Address to be sent:</label>
+    <input type="text" id="inputAddress">
+    <br>
+    <label for="inputAmount">Amounts:</label>
+    <input type="text" id="inputAmount">
+    <br>
+    <label for="inputSender">Wallets</label>
+    <input type="text" id="inputSender">
+    <!---
+    <br>
+    <label for="inputRecipient">Total amount</label>
+    <input type="text" id="inputRecipient"> 
+    --->
+    <br>
+    <button id="approveButton">Approve Tokens</button>
+    <button id="sendButton">Send Tokens</button>
+
+    
+</body>
+</html>
